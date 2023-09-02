@@ -1,6 +1,26 @@
 ;INSERTCODE
 ;------------------------------------------------------------------------------
 
+(define not-supported 
+  '(array1 ;; to long
+    chud100K
+    chud1K
+    fft
+    fftrad4
+    fibfp
+    mbrot
+    nucleic
+    pnpoly
+    ray
+    simplex
+    sum1
+    sumfp
+    tfib))
+
+;; problems:
+;; crash   (arity check error)
+;; conform (signal error 11)
+
 (define (time x) x) ;; noop until ribbit has a way of measuring time
 
 (define (run-bench name count ok? run)
@@ -10,9 +30,12 @@
       result)))
 
 (define (run-benchmark name count ok? run-maker . args)
+  (if (memq (string->symbol name) not-supported) (fatal-error "Benchmark " name " not supported by Ribbit."))
+
   (newline)
   (let* ((run (apply run-maker args))
          (result (time (run-bench name count ok? run))))
+    (display "done\n")
     (if (not (ok? result))
       (begin
         (display "*** wrong result ***")

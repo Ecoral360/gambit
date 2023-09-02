@@ -100,7 +100,7 @@ GAMBIT_INT=${GAMBIT_INT:-"../../../gsi/gsi -:m10000,d-,~~=../../.."}
 RIBBIT_COMP=${RIBBIT_COMP:-rsc}
 RIBBIT_INT=${RIBBIT_INT:-rsi}
 
-CPU_LIMIT=${CPU_LIMIT:-"300"}
+CPU_LIMIT=${CPU_LIMIT:-"600"}
 
 ulimit -t $CPU_LIMIT
 
@@ -238,7 +238,10 @@ gambit_int_comp ()
 
 gambit_int_exec ()
 {
-  printf "$REPLCOMMANDS" "$1" | $GAMBIT_INT
+
+    {
+        printf "$REPLCOMMANDS" "$1"
+    } | /usr/bin/time -f 'real: %e' $GAMBIT_INT
 }
 
 # -----------------------------------------------------------------------------
@@ -247,13 +250,17 @@ gambit_int_exec ()
 ribbit_comp ()
 {
     {
-      echo $RIBBIT_COMP $COMPOPTS -x $1 -o $1.out $1.scm
-    } | /usr/bin/time sh
+      echo $RIBBIT_COMP $COMPOPTS -x "$1" "$1.scm"
+    } | /usr/bin/time -f 'real %e' sh
 }
 
 ribbit_exec ()
 {
-    /usr/bin/time "./$1"
+    if [ -f "./$1" ]; then 
+        /usr/bin/time -f 'real: %e' "./$1"
+        printf "size: "
+        ls -lah "./$1" | awk '{print $5}'
+    fi
 }
 
 ribbit_int_comp ()
@@ -263,8 +270,9 @@ ribbit_int_comp ()
 
 ribbit_int_exec ()
 {
-    EVAL="$(printf "$REPLCOMMANDS" "$1")"
-    $RIBBIT_INT -e "$EVAL"
+    {
+        printf "$REPLCOMMANDS" "$1"
+    } | /usr/bin/time -f 'real: %e' $RIBBIT_INT 
 }
 
 # -----------------------------------------------------------------------------
@@ -731,6 +739,11 @@ gambit-int) NAME='Gambit-C-int'
     ribbit) NAME='Ribbit'
             COMP=ribbit_comp
             COMPOPTS="$options -l r4rs"
+            if [ "$RIBBIT_HOST" = "" ] && [ "$options" = "" ]; then 
+                printf "You must enter a host: "
+                read -r RIBBIT_HOST
+                COMPOPTS="-t $RIBBIT_HOST $COMPOPTS"
+            fi
             EXEC=ribbit_exec
             iterfile=num-iters.scm
             extension=".scm"

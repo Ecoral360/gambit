@@ -1,0 +1,66 @@
+#!/bin/sh
+
+exec_test () {
+    if echo "$DONT" | grep -w -q -F "$TEST_NAME"  ; then 
+        echo ".---------Skipped $TEST_NAME---------."
+        echo ""
+        return 0
+    fi
+    # if [ "$LOG_FILE" = "" ]; then
+    #     printf 'Do %s (Y/n)? ' "$TEST_NAME"
+    #     read -r DO_TEST
+    #     if [ "$DO_TEST" = "n" ]; then 
+    #         DO_TEST=""
+    #         echo
+    #         return 0
+    #     fi
+    # fi
+    printf '.---------Testing %s%s...---------.' "$TEST_NAME" " with options: $OPT"
+    RESULT="$(./bench -r 1 -o "-t $HOST $OPT -e optimal" ribbit "$TEST_NAME")"
+    echo "$RESULT"
+    if echo "$RESULT" | grep -q -F 'done'; then
+        echo ".---------Success---------."
+    else 
+        echo ".---------Failed---------."
+    fi
+    echo ""
+}
+
+DONT="array1 
+chud100K 
+chud1K 
+fft 
+fftrad4 
+fibfp 
+mbrot 
+nucleic 
+pnpoly 
+ray 
+simplex 
+sum1 
+sumfp 
+
+tfib
+compiler"
+HOST="$1"
+LOG_FILE="$2"
+
+FILTER=${FILTER:-"*"}
+
+# for HOST in $(read -r "asm c js"); do
+for TEST in $(ls ./src | grep -E "$FILTER")
+do
+    case "$TEST" in 
+        *.scm)
+            TEST_NAME="$(echo "$TEST" | sed 's/\.scm//g')"
+            if [ "$DO_TEST" = "" ] || [ "$DO_TEST" = "y" ]; then
+                if [ "$LOG_FILE" = "" ]; then
+                    exec_test
+                else 
+                    exec_test >> "$LOG_FILE"
+                fi
+            fi
+            ;;
+    esac
+done
+# done

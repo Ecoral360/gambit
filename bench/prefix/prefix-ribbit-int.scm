@@ -26,7 +26,7 @@
 (define (fatal-error . args)
   (for-each display args)
   (newline)
-  (##exit 1))
+  (error "oups"))
 
  (define (call-with-output-file/truncate filename proc)
    (call-with-output-file filename proc))

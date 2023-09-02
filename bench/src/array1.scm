@@ -16,9 +16,12 @@
 (define (my-try n)
   (vector-length (create-y (create-x n))))
 
+(define counter 0)
 (define (go n)
   (let loop ((repeat 100)
              (result '()))
+    (pp counter)
+    (set! counter (+ counter 1))
     (if (> repeat 0)
         (loop (- repeat 1) (my-try n))
         result)))

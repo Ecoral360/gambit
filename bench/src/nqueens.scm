@@ -5,8 +5,9 @@
 (define (nqueens n)
 
   (define (_1-to n)
-    (let loop ((i n) (l '()))
-      (if (= i 0) l (loop (- i 1) (cons i l)))))
+    (letrec ((loop (lambda (i l )
+                     (if (= i 0) l (loop (- i 1) (cons i l))))))
+      (loop n '())))
 
   (define (my-try x y z)
     (if (null? x)
