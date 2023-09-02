@@ -941,6 +941,7 @@ CONF_VOIDSTAR_WIDTH
 EGREP
 GREP
 CONF_MAX_CHR
+CONF_SINGLE_HOST_LIMIT
 CONF_ACTIVITY_LOG
 ENABLE_GUIDE
 QTINCPATH
@@ -1770,8 +1771,13 @@ Optional Features:
                           is NO)
   --enable-feedback2      build system using trial run feedback (default is
                           NO)
-  --enable-single-host    compile each Scheme module as a single C function
-                          (default is NO)
+  --enable-single-host[=N]
+                          compile each Scheme module as a single C function
+                          (by default each Scheme procedure is compiled to a C
+                          function, otherwise N, which defaults to 30000, is
+                          the maximum number of control points in the module
+                          to use single host mode and the special case N=0
+                          avoids a limit)
   --enable-lowlevel-exec  build system so C and machine code can be mixed
                           (default is NO)
   --enable-inline-jumps   generate inline code for jumps (default is NO)
@@ -3194,6 +3200,11 @@ RTLIB_COND_EXPAND_FEATURES=""
 
 userlibdir="~/.gambit_userlib"
 instlibdir="~~userlib"
+
+# use the octal code \\176 instead of ~ to avoid a mingw bug on Windows
+
+userlibdir="`echo $userlibdir | sed -e s/~/\\\\\\\\176/g`"
+instlibdir="`echo $instlibdir | sed -e s/~/\\\\\\\\176/g`"
 
 ###############################################################################
 #
@@ -5081,8 +5092,10 @@ fi
 ###############################################################################
 #
 # Check if a single C function should be generated for all the Scheme
-# functions in a file.  This makes the executable much faster but the
+# procedures in a file.  This makes the executable much faster but the
 # compilation will be much longer and take much more memory.
+# By default there is a limit to the number of control points in a
+# file for single host mode to be used.  The limit is configurable.
 
 # Check whether --enable-single-host was given.
 if test "${enable_single_host+set}" = set; then :
@@ -5092,12 +5105,19 @@ else
 fi
 
 
-if test "$ENABLE_SINGLE_HOST" = yes; then
+CONF_SINGLE_HOST_LIMIT="30000"
+
+if test "$ENABLE_SINGLE_HOST" != no; then
 
 $as_echo "#define ___SINGLE_HOST /**/" >>confdefs.h
 
   DEFS_OBJ_DYN_LIB_EXE="$DEFS_OBJ_DYN_LIB_EXE -D___SINGLE_HOST"
+  if test "$ENABLE_SINGLE_HOST" != yes; then
+    CONF_SINGLE_HOST_LIMIT="$enableval"
+  fi
 fi
+
+
 
 ###############################################################################
 #
@@ -10257,8 +10277,11 @@ if test "$ENABLE_OPENSSL" = yes; then
 
   case "$target_os" in
     darwin*) # macOS ships an old version of the OpenSSL library, so it should
-             # be installed with "brew install openssl"
-             OPENSSL_DIR="/usr/local/opt/openssl@1.1"
+             # be installed with "brew install openssl" or another means and
+             # set the OPENSSL_DIR environment variable to prefix where installed.
+             if test "${OPENSSL_DIR+set}" != set; then
+               OPENSSL_DIR="/usr/local/opt/openssl@1.1"
+             fi
              if test "$ENABLE_OPENSSL_STATIC_LINK" = yes; then
                LIBS="$LIBS $OPENSSL_DIR/lib/libssl.a $OPENSSL_DIR/lib/libcrypto.a"
              else
